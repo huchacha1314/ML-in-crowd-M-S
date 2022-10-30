@@ -15,26 +15,27 @@ def update(Grid, pedestrians, targets, distance_matrix):
     row_size = len(Grid)
     col_size = len(Grid[0])
 
-    for p in range(len(pedestrians)):
-
-        pedestrian_loc = np.array([pedestrians[p][0], pedestrians[p][1]])
-        max_loc = pedestrian_loc
-        present_utility = utility(pedestrian_loc, distance_matrix)
+    for i, p_loc in enumerate(pedestrians):
+        
+        p_loc = np.array(p_loc)
+        max_loc = p_loc
+        present_utility = utility(p_loc, distance_matrix)
         max_utility = present_utility
+        
         for loc in neighbour_locs:
-            neighbour_loc = pedestrian_loc + loc
+            neighbour_loc = p_loc + loc
+            x, y = neighbour_loc
             if check_grid_bound(neighbour_loc, col_size, row_size):
-                if Grid[neighbour_loc[1] - 1][neighbour_loc[0] - 1].state == 'target':
-                    max_loc = pedestrian_loc
-                    break
-                elif Grid[neighbour_loc[1] - 1][neighbour_loc[0] - 1].state == 'pedestrian':
+                # If neigbour loc is target, pedestrian or obstacle. Do not move                
+                if Grid[y][x].state in ['target', 'pedestrian', 'obstacle']:
                     continue
                 neighbour_utility = utility(neighbour_loc, distance_matrix)
                 if neighbour_utility > max_utility:
                     max_utility = neighbour_utility
                     max_loc = neighbour_loc
-        Grid[pedestrian_loc[1] - 1][pedestrian_loc[0] - 1].state = 'empty'
-        Grid[max_loc[1] - 1][max_loc[0] - 1].state = 'pedestrian'
-        pedestrians[p] = max_loc
+
+        Grid[p_loc[0]][p_loc[1]].state = 'empty'
+        Grid[max_loc[0]][max_loc[1]].state = 'pedestrian'
+        pedestrians[i] = max_loc
 
     return Grid, pedestrians

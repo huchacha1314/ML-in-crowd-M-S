@@ -42,10 +42,9 @@ class Distance:
         # Check if input is single target or mutliple
         if isinstance(targets[0], int):
             targets = [targets]
-
-                    
-        print(matrix, targets)
-        
+            
+        targets = np.array(targets, dtype=int)
+                            
         if self.method == "euclidean":
             return self.euclidean(matrix, targets)
         elif self.method == "dijkstra":
@@ -63,7 +62,6 @@ class Distance:
         targets : Array of tuples (i, j) with coordinates of each target
         return: matrix of size (n, n) with distances from each grid location to the closest target
         """
-        
 
         size = len(matrix)
         distance_matrix = np.ones((size,size)) * np.inf
