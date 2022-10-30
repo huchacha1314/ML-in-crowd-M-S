@@ -1,16 +1,14 @@
 import numpy as np
 
-def utility(co_or1, co_or2, grid):
+def utility(pedestrian_loc, distance_matrix):
     """
-    :param co_or1: list of coordinates of Cell 1
-    :param co_or2: list of Coordinates of Cell 2
-    :param grid: List of Cells row x col
-    :return: utility value scalar indicative of how favourable Cell1(pedestrian) location is to Cell2(target)
+    :param pedestrian_loc: coordinates of pedestrian
+    :param distance_matrix: matrix with distance to closest target
+    :return: utility value scalar indicative of how favourable pedestrian location is to targets
     """
-    grid_size = len(grid)
-    co_or1 = np.array(co_or1)
-    co_or2 = np.array(co_or2)
-    r_2 = np.sum((co_or1-co_or2)**2)
+    x, y = pedestrian_loc
+    grid_size = len(distance_matrix)
+    r_2 = distance_matrix[x,y]**2
     r_max2 = 2 * grid_size**2
 
     return np.exp(1.0/(r_2-r_max2)) if r_2<r_max2 else 0

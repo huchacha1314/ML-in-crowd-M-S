@@ -1,15 +1,15 @@
 import numpy as np
 from utility_functions import *
 
-def update(Grid, pedestrians, target):
+def update(Grid, pedestrians, targets, distance_matrix):
     '''
     Grid : List of Cells row X col
     pedestrian : x, y coordinate values of the pedestrian
     '''
 
     neighbour_locs = np.array([[1, 1], [1, 0], [1, -1], [0, -1], [0, 1], [-1, 1], [-1, 0], [-1, -1]])
-
-    target_loc = np.array([target[0], target[1]])
+    
+    targets = np.array(targets)
     pedestrians = np.array(pedestrians)
 
     row_size = len(Grid)
@@ -19,7 +19,7 @@ def update(Grid, pedestrians, target):
 
         pedestrian_loc = np.array([pedestrians[p][0], pedestrians[p][1]])
         max_loc = pedestrian_loc
-        present_utility = utility(pedestrian_loc, target_loc, Grid)
+        present_utility = utility(pedestrian_loc, distance_matrix)
         max_utility = present_utility
         for loc in neighbour_locs:
             neighbour_loc = pedestrian_loc + loc
@@ -29,7 +29,7 @@ def update(Grid, pedestrians, target):
                     break
                 elif Grid[neighbour_loc[1] - 1][neighbour_loc[0] - 1].state == 'pedestrian':
                     continue
-                neighbour_utility = utility(neighbour_loc, target_loc, Grid)
+                neighbour_utility = utility(neighbour_loc, distance_matrix)
                 if neighbour_utility > max_utility:
                     max_utility = neighbour_utility
                     max_loc = neighbour_loc
