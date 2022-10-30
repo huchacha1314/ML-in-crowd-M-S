@@ -27,7 +27,7 @@ def update(Grid, pedestrians, targets, distance_matrix):
             x, y = neighbour_loc
             if check_grid_bound(neighbour_loc, col_size, row_size):
                 # If neigbour loc is target, pedestrian or obstacle. Do not move                
-                if Grid[y][x].state in ['target', 'pedestrian', 'obstacle']:
+                if Grid[x][y].state in ['target', 'pedestrian', 'obstacle']:
                     continue
                 neighbour_utility = utility(neighbour_loc, distance_matrix)
                 if neighbour_utility > max_utility:

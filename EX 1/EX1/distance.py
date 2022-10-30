@@ -63,11 +63,11 @@ class Distance:
         return: matrix of size (n, n) with distances from each grid location to the closest target
         """
 
-        size = len(matrix)
-        distance_matrix = np.ones((size,size)) * np.inf
+        h, w = matrix.shape
+        distance_matrix = np.ones((h, w)) * np.inf
 
-        for i in range(size):
-            for j in range(size):
+        for i in range(h):
+            for j in range(w):
                 if matrix[i][j] == 0:
                     continue
                 for tar in targets:
@@ -90,96 +90,101 @@ class Distance:
         return: matrix of size (n, n) with distances from each grid location to target (si, sj)
         """
         
-        size = len(matrix)
-        gridArea = [[None for i in range(size)] for j in range(size)]
+        h, w = matrix.shape
+        distance_matrix = np.ones((h, w)) * np.inf
         
-        # TODO : Only implemented for one target. Extend to multiple targets
-        si, sj = targets[0]
+        
+        for tar in targets:
+            gridArea = [[None for i in range(w)] for j in range(h)]
 
-        # Creating nodes and finding blocked cells in matrix and mapping accordingly to our grid
-        for i in range(size):
-            for j in range(size):
-                gridArea[i][j] = Node(i, j)
-                if matrix[i][j] == False:
-                    gridArea[i][j].blocked = True
+            si, sj = tar
 
-        # setting start distance to 0.
-        # All other nodes will have infinity distance at the beginning
-        start = gridArea[si][sj]
-        start.distance = 0
+            # Creating nodes and finding blocked cells in matrix and mapping accordingly to our grid
+            for i in range(h):
+                for j in range(w):
+                    gridArea[i][j] = Node(i, j)
+                    if matrix[i][j] == False:
+                        gridArea[i][j].blocked = True
 
-        queueB = []
-        heapq.heappush(queueB, start)
-  
+            # setting start distance to 0.
+            # All other nodes will have infinity distance at the beginning
+            start = gridArea[si][sj]
+            start.distance = 0
 
-        while len(queueB) > 0:
-            current = heapq.heappop(queueB)
+            queueB = []
+            heapq.heappush(queueB, start)
 
-            # Top
-            if current.x - 1 >= 0:
-                
-                # Top Top
-                t = gridArea[current.x - 1][current.y]
 
-                if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
-                    t.distance = current.distance + Distance.hVDistance
-                    heapq.heappush(queueB, t)
+            while len(queueB) > 0:
+                current = heapq.heappop(queueB)
 
-                # Top Left
+                # Top
+                if current.x - 1 >= 0:
+
+                    # Top Top
+                    t = gridArea[current.x - 1][current.y]
+
+                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
+                        t.distance = current.distance + Distance.hVDistance
+                        heapq.heappush(queueB, t)
+
+                    # Top Left
+                    if current.y - 1 > 0:
+                        t = gridArea[current.x - 1][current.y - 1]
+                        if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
+                            t.distance = current.distance + Distance.dDistance
+                            heapq.heappush(queueB, t)
+
+                    # Top Right
+                    if current.y + 1 < w:
+                        t = gridArea[current.x - 1][current.y + 1]
+                        if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
+                            t.distance = current.distance + Distance.dDistance
+                            heapq.heappush(queueB, t)
+
+                # Left
                 if current.y - 1 > 0:
-                    t = gridArea[current.x - 1][current.y - 1]
-                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
-                        t.distance = current.distance + Distance.dDistance
+                    t = gridArea[current.x][current.y - 1]
+                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
+                        t.distance = current.distance + Distance.hVDistance
                         heapq.heappush(queueB, t)
 
-                # Top Right
-                if current.y + 1 < size:
-                    t = gridArea[current.x - 1][current.y + 1]
-                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
-                        t.distance = current.distance + Distance.dDistance
+                # Right
+                if current.y + 1 < w:
+                    t = gridArea[current.x][current.y + 1]
+                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
+                        t.distance = current.distance + Distance.hVDistance
                         heapq.heappush(queueB, t)
 
-            # Left
-            if current.y - 1 > 0:
-                t = gridArea[current.x][current.y - 1]
-                if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
-                    t.distance = current.distance + Distance.hVDistance
-                    heapq.heappush(queueB, t)
+                # Down
+                if current.x + 1 < h:
 
-            # Right
-            if current.y + 1 < size:
-                t = gridArea[current.x][current.y + 1]
-                if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
-                    t.distance = current.distance + Distance.hVDistance
-                    heapq.heappush(queueB, t)
+                    # Down Down
+                    t = gridArea[current.x + 1][current.y]
 
-            # Down
-            if current.x + 1 < size:
-
-                # Down Down
-                t = gridArea[current.x + 1][current.y]
-
-                if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
-                    t.distance = current.distance + Distance.hVDistance
-                    heapq.heappush(queueB, t)
-
-                # Down Left
-                if current.y - 1 >= 0:
-                    t = gridArea[current.x + 1][current.y - 1]
-                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
-                        t.distance = current.distance + Distance.dDistance
+                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.hVDistance:
+                        t.distance = current.distance + Distance.hVDistance
                         heapq.heappush(queueB, t)
 
-                # Down Right
-                if current.y + 1 < size:
-                    t = gridArea[current.x + 1][current.y + 1]
-                    if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
-                        t.distance = current.distance + Distance.dDistance
-                        heapq.heappush(queueB, t)
+                    # Down Left
+                    if current.y - 1 >= 0:
+                        t = gridArea[current.x + 1][current.y - 1]
+                        if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
+                            t.distance = current.distance + Distance.dDistance
+                            heapq.heappush(queueB, t)
 
-            current.visited = True
-            
-        distance_matrix = np.array([[i.distance for i in j] for j in gridArea])
+                    # Down Right
+                    if current.y + 1 < w:
+                        t = gridArea[current.x + 1][current.y + 1]
+                        if not t.visited and not t.blocked and t.distance > current.distance + Distance.dDistance:
+                            t.distance = current.distance + Distance.dDistance
+                            heapq.heappush(queueB, t)
+
+                current.visited = True
+                
+            for i in range(h):
+                for j in range(w):
+                    distance_matrix[i, j] = min(distance_matrix[i, j], gridArea[i][j].distance)
 
         return distance_matrix
 
