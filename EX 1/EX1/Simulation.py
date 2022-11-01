@@ -2,12 +2,15 @@ from tkinter import *
 from Cell import *
 from update_state import *
 
+import time
+
 class Simulation(Canvas):
-    def __init__(self, root, rowNumber, columnNumber, cellSize, init_grid, pedestrian, target, distance_matrix, *args,
+    def __init__(self, root, rowNumber, columnNumber, cellSize, init_grid, pedestrian, target, distance_matrix, steps, *args,
                  **kwargs):
         Canvas.__init__(self, root, width=cellSize * columnNumber, height=cellSize * rowNumber, *args, **kwargs)
 
         self.grid = []
+        self.steps = steps
         self.row_size = rowNumber
         self.col_size = columnNumber
         self.pedestrian = pedestrian
@@ -34,5 +37,13 @@ class Simulation(Canvas):
                 cell.draw(cell.state)
 
     def handleMouseClick(self, event):
+        for i in range(1, self.steps+1):
+            time.sleep(0.2)
+            self.update_step()
+            print(i)
+        
+    def update_step(self):
         self.grid, self.pedestrian = update(self.grid, self.pedestrian, self.target, self.distance_matrix)
         self.draw()
+        self.update()
+        
