@@ -38,9 +38,9 @@ class Simulation(Canvas):
 
     def handleMouseClick(self, event):
         for i in range(1, self.steps+1):
-            time.sleep(0.2)
             self.update_step()
             print(i)
+            time.sleep(0.1)
         
     def update_step(self):
         self.grid, self.pedestrian = update(self.grid, self.pedestrian, self.target, self.distance_matrix)
