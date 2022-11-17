@@ -1,0 +1,226 @@
+# # GitLab CI Job Configuration
+#
+# Goal: Run all jobs defined here on all available runners (GNU/Linux and
+# Windows).
+# 
+# Procedure: Use GitLab job templates prefixed with a "." and use them in the
+# actual job description with the "extends" keyword.
+#
+# ## Job Description Syntax
+#
+# <job_name>:                   # Job name which is displayed in web interface.
+#   stage: <stage_name>         # Run "script" commands in this stage. The
+#                               # stages are executed sequentially.
+#   script:
+#      - <arbitrary_commands>   # Here you can execute arbitratry terminal
+#                               # commands. If any of the commands return a
+#                               # non-zero exit code, the job fails.
+#
+# ## References
+#
+# - https://docs.gitlab.com/ee/ci/yaml/README.html
+
+# Variable Definitions
+variables:
+    VADERE_DEPLOYMENT_BASE_URL: "http://www.vadere.org/builds"
+    VADERE_PACKAGE_NAME_BRANCHES: "vadere.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip"
+    VADERE_PACKAGE_NAME_RELEASES: "vadere.${CI_COMMIT_TAG}.${CI_RUNNER_TAGS}.zip"
+    EIKMESH_PACKAGE_NAME_BRANCHES: "eikmesh.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip"
+
+# Stage Definitions
+stages:
+    - unit_test
+    - integration_test
+    - seed_test
+    - deploy
+
+# PLEASE, OMIT FOLLOWING GITLAB PITFALLS:
+#
+# 1. "include:" statement does not work properly and seems really buggy.
+#    Therefore, define all job templates and jobs directly here.
+#    "include: .gitlab/ci/templates/test_stage_templates.yml" does not work!
+# 2. Variables from "variables" section are not expanded correctly in "url"
+#    section of an "environment".
+
+# WATCH OUT:
+#
+# We use "scp -o StrictHostKeyChecking=no" to transfer data to
+# "webdev02-mwn.lrz.de"! Not checking the host key allows man-in-the-middle
+# attacks!
+#
+# Unfortunately, this workaround is necessary since LRZ moved Vadere's webspace
+# from "webdev-mwn.lrz.de" to "webdev02-mwn.lrz.de". Since then, scp sometimes
+# returns with following error: "host verification failed".
+# I.e., the key in CI worker's "~/.ssh/known_hosts" and returned host key from
+# "webdev02-mwn.lrz.de" do not match.
+#
+# Even deleting "~/.ssh/known_hosts" and re-adding "webdev02-mwn.lrz.de"'s key
+# does not work via "ssh-keyscan -H webdev02-mwn.lrz.de > ~/.ssh/known_hosts".
+#
+# Maybe, worker's SSH version (OpenSSH_7.6p1) and host's SSH versions
+# (OpenSSH_7.9p1) or LRZ has a severe problem because their servers always
+# return different / unrelieable SSH keys!
+
+# Job Template Definitions
+.template_unit_tests:
+    stage: unit_test
+    # Skip OpenCL tests by using "-Dtest=!Test1,!Test2,..." because GitLab
+    # runners do not support OpenCL.
+    script:
+        - rm -f ~/.config/vadere.conf
+        - mvn clean
+        - mvn -Dtest=!TestConvolution,!TestBitonicSort,!TestCLLinkedList,!TestCLOptimalStepsModel,!TestLWJGL test
+        - python3 Tools/ContinuousIntegration/collect_line_and_branch_coverage.py
+    artifacts:
+        when: on_success
+        paths:
+            - "*/target/coverage-reports"
+        expire_in: 1 week
+    when: on_success
+            
+.template_scenario_files:
+    stage: integration_test
+    script:
+        - rm -f ~/.config/vadere.conf
+        - mvn clean
+        - mvn -Dmaven.test.skip=true package
+        - python3 Tools/ContinuousIntegration/run_vadere_console_with_all_scenario_files.py
+    artifacts:
+        when: on_failure
+        paths:
+            - "vadere_logs"
+        expire_in: 1 week
+    when: on_success
+
+.template_deploy_master_automatically:
+    stage: deploy
+    script:
+        - mvn clean
+        - mvn -Dmaven.test.skip=true package
+        - python3 -m zipfile -c ${VADERE_PACKAGE_NAME_BRANCHES} CHANGELOG.md README.md Scenarios/ VadereGui/target/vadere-gui.jar VadereSimulator/target/vadere-console.jar VadereManager/target/vadere-server.jar
+        - scp -o StrictHostKeyChecking=no ${VADERE_PACKAGE_NAME_BRANCHES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/master/${VADERE_PACKAGE_NAME_BRANCHES}
+        - python3 -m zipfile -c ${EIKMESH_PACKAGE_NAME_BRANCHES} VadereMeshing/README.md VadereMeshing/target/meshing-0.1-SNAPSHOT.jar
+        - scp -o StrictHostKeyChecking=no ${EIKMESH_PACKAGE_NAME_BRANCHES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/master/eikmesh/${EIKMESH_PACKAGE_NAME_BRANCHES}
+    only:
+        refs:
+            - master
+    when: on_success
+
+.template_deploy_stable_automatically:
+    stage: deploy
+    script:
+        - mvn clean
+        - mvn -Dmaven.test.skip=true package
+        - python3 -m zipfile -c ${VADERE_PACKAGE_NAME_RELEASES} CHANGELOG.md README.md Scenarios/ VadereGui/target/vadere-gui.jar VadereSimulator/target/vadere-console.jar VadereManager/target/vadere-server.jar
+        - scp -o StrictHostKeyChecking=no ${VADERE_PACKAGE_NAME_RELEASES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/stable/${VADERE_PACKAGE_NAME_RELEASES}
+    # Run job only for "tags" (usually on the "stable" branch). Watch out: Multiple "only" tags are ORed together.
+    # See: https://gitlab.com/gitlab-org/gitlab-ce/issues/27818
+    only:
+        - tags
+    when: on_success
+
+.template_deploy_branch_manually:
+    stage: deploy
+    script:
+        - mvn clean
+        - mvn -Dmaven.test.skip=true package
+        - python3 -m zipfile -c ${VADERE_PACKAGE_NAME_BRANCHES} CHANGELOG.md README.md Scenarios/ VadereGui/target/vadere-gui.jar VadereSimulator/target/vadere-console.jar VadereManager/target/vadere-server.jar
+        - scp -o StrictHostKeyChecking=no ${VADERE_PACKAGE_NAME_BRANCHES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/branches/${VADERE_PACKAGE_NAME_BRANCHES}
+    when: manual
+
+.template_seed_test:
+    stage: seed_test
+    script:
+        - mvn clean
+        - mvn -Dmaven.test.skip=true package
+        # setup.py install should from the directoty at which the setup.py file is located (working directory). The brackets return the working direcory back to previous position. 
+        - (cd Tools/VadereAnalysisTools/VadereAnalysisTool/ && python3 setup.py install --user)
+        - python3 Tools/ContinuousIntegration/run_seed_comparison_test.py   
+    artifacts:
+        when: on_failure
+        paths: 
+            - "Tools/ContinuousIntegration/run_seed_comparison_test.d/output"
+        expire_in: 1 week
+    when: on_success
+
+# Job Definitions
+
+## Jobs for GNU/Linux runner (which is labeled with tag "linux")
+run_unit_tests_on_linux:
+    extends: .template_unit_tests
+    tags:
+        - linux
+
+run_scenario_files_on_linux:
+    extends: .template_scenario_files
+    tags:
+        - linux
+
+run_seed_test_on_linux:
+    extends: .template_seed_test
+    tags:
+        - linux
+
+deploy_master_on_linux:
+    extends: .template_deploy_master_automatically
+    tags:
+        - linux        
+    environment:
+        name: master/linux
+        url: ${VADERE_DEPLOYMENT_BASE_URL}/master/vadere.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip
+
+deploy_stable_on_linux:
+    extends: .template_deploy_stable_automatically
+    tags:
+        - linux
+    environment:
+        name: stable/linux
+        url: ${VADERE_DEPLOYMENT_BASE_URL}/stable/vadere.${CI_COMMIT_TAG}.${CI_RUNNER_TAGS}.zip
+
+deploy_branch_on_linux:
+    extends: .template_deploy_branch_manually
+    tags:
+        - linux        
+    environment:
+        name: branches/${CI_COMMIT_REF_NAME}/linux
+        url: ${VADERE_DEPLOYMENT_BASE_URL}/branches/vadere.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip
+
+## Jobs for Windows runner (which is labeled with tag "windows")
+run_unit_tests_on_windows:
+    extends: .template_unit_tests
+    tags:
+        - windows
+
+run_scenario_files_on_windows:
+    extends: .template_scenario_files
+    tags:
+        - windows
+
+run_seed_test_on_windows:
+    extends: .template_seed_test
+    tags:
+        - windows
+
+deploy_master_on_windows:
+    extends: .template_deploy_master_automatically
+    tags:
+        - windows        
+    environment:
+        name: master/windows
+        url: ${VADERE_DEPLOYMENT_BASE_URL}/master/vadere.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip
+
+deploy_stable_on_windows:
+    extends: .template_deploy_stable_automatically
+    tags:
+        - windows
+    environment:
+        name: stable/windows
+        url: ${VADERE_DEPLOYMENT_BASE_URL}/stable/vadere.${CI_COMMIT_TAG}.${CI_RUNNER_TAGS}.zip
+
+deploy_branch_on_windows:
+    extends: .template_deploy_branch_manually
+    tags:
+        - windows        
+    environment:
+        name: branches/${CI_COMMIT_REF_NAME}/windows
+        url: ${VADERE_DEPLOYMENT_BASE_URL}/branches/vadere.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip

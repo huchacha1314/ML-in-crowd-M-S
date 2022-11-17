@@ -1,0 +1,65 @@
+# Build artifacts, log and preference files
+javac.*.args
+*.preferences.xml
+**/current_commit_hash.txt
+**/log.out
+**/*.log.gz
+bin/
+swing-inspector-linux-1.2.3/
+target/
+
+# C extensions
+*.so
+vadere_analysis_tool/build
+
+# IDEs
+.idea/
+*.iml
+.settings/
+.metadata/
+.classpath
+.project
+.vscode
+.apt_generated
+.apt_generated_tests
+.factorypath
+
+# Package specific
+VadereGui/*.png
+VadereGui/*.svg
+VadereGui/*.mov
+VadereGui/testResources/**/*.legacy
+VadereUtils/testreports/*.txt
+VadereSimulator/testResources/**/*.legacy
+
+# Python (byte-compiled, optimized, DLL files etc.)
+__pycache__/
+*.py[cod]
+*$py.class
+**/venv/
+_trial_temp/
+Tools/VadereAnalysisTools/VadereAnalysisTool/vadereanalysistool.egg-info/
+Tools/VadereAnalysisTools/VadereAnalysisTool/build/
+Tools/VadereAnalysisTools/VadereAnalysisTool/dist/
+.mypy_cache/
+# Jupyter Notebooks
+**/.ipynb_checkpoints
+
+# Test output
+Scenarios/**/output
+Scenarios/**/*_private
+Scenarios/**/**/legacy
+VadereUtils/output/**
+
+# Operating system files
+.DS_Store
+**/.directory
+
+# Vadere output directories
+**/output/
+**/legacy/
+**/*_private/
+
+# Vadere Cache
+**/__cache__
+**/vadere-server-output
